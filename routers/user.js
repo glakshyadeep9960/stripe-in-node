@@ -6,6 +6,7 @@ const {
   VerifyAccount,
   getUser,
   createCheckoutSession,
+  deletePlan,
 } = require("../controllers/user");
 const VerifyUserToken = require("../middleware/verifyUser");
 
@@ -16,5 +17,6 @@ UserRouter.route("/login").post(login);
 UserRouter.route("/verify-account").put(VerifyUserToken, VerifyAccount);
 UserRouter.route("/get-user").get(VerifyUserToken, getUser);
 UserRouter.route("/checkout").post(VerifyUserToken, createCheckoutSession);
+UserRouter.route("/delete-plan").delete(VerifyUserToken, deletePlan);
 
 module.exports = UserRouter;

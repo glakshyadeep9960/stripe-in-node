@@ -78,12 +78,17 @@ exports.stripeWebhook = async (req, res) => {
   switch (event.type) {
     case "payment_intent.succeeded":
       const paymentIntent = event.data.object;
-      console.log(paymentIntent);
+      console.log(event, "event data object");
+
+      const invoice = await stripe.invoices.retrieve(paymentIntent.invoice);
+      console.log(invoice.subscription, "invoice from webhook lavi");
+
       const customer = paymentIntent?.customer;
       if (User && customer) {
         const updatedData = {
           isSubscribed: true,
           plan: paymentIntent?.amount === 50000 ? "Yearly" : "Monthly",
+          subscriptionId: invoice.subscription,
         };
         await User.updateOne({ stripeId: customer }, { $set: updatedData });
       }
@@ -105,4 +110,35 @@ exports.stripeWebhook = async (req, res) => {
   }
 
   return res.status(200).json({ message: "Payment Intent Succeeded" });
+};
+
+exports.updatePlan = async (req, res) => {
+  const { email } = req.user;
+  try {
+    const user = await User.findOne({ email });
+    console.log(user.subscriptionId, "subscriptionId");
+    const fetchSubscription = await stripe.subscriptions.retrieve(
+      user?.subscriptionId
+    );
+    console.log(fetchSubscription, "fetchSubscription");
+    const plans = await stripe.plans.list({
+      limit: 5,
+    });
+    console.log(plans, "plans");
+
+    // const subscriptionItem = await stripe.subscriptionItems.update(
+    //   fetchSubscription.items.data[0].id,
+    //   {
+    //     plans: await stripe.plans.update(
+    //       fetchSubscription.items.data[0].plan.id,
+    //       process.env.YEARLY_PLAN
+    //     ),
+    //   }
+    // );
+    return res
+      .status(200)
+      .json({ message: "details", user, fetchSubscription });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
 };

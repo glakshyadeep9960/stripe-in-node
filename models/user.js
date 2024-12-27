@@ -36,6 +36,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: "Free",
   },
+  subscriptionId: {
+    type: String,
+  },
 });
 
 userSchema.pre("save", async function () {
