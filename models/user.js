@@ -38,6 +38,7 @@ const userSchema = new mongoose.Schema({
   },
   subscriptionId: {
     type: String,
+    default: "Not Subscribed",
   },
 });
 

@@ -4,8 +4,9 @@ const {
   listAllPrices,
   stripeWebhook,
   createYearlyPlan,
-  updatePlan,
-  deletePlan,
+  upgradePlan,
+  downgradePlan,
+  cancelSubscription,
 } = require("../controllers/stripe");
 const VerifyUserToken = require("../middleware/verifyUser");
 const StripeRouter = express.Router();
@@ -17,6 +18,11 @@ StripeRouter.route("/webhook").post(
   express.raw({ type: "application/json" }),
   stripeWebhook
 );
-StripeRouter.route("/update-plan").post(VerifyUserToken, updatePlan);
+StripeRouter.route("/upgrade-plan").post(VerifyUserToken, upgradePlan);
+StripeRouter.route("/downgrade-plan").post(VerifyUserToken, downgradePlan);
 
+StripeRouter.route("/cancel-subscription").post(
+  VerifyUserToken,
+  cancelSubscription
+);
 module.exports = StripeRouter;

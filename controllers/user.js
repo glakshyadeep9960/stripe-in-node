@@ -82,7 +82,11 @@ exports.login = async (req, res) => {
     if (!findUser) {
       return res.status(404).json({ message: "User not found!" });
     } else {
-      const isUserVerified = await User.findOne({ isVerified: true });
+      const isUserVerified = await User.findOne({
+        email,
+        isVerified: true,
+      });
+
       const token = await findUser.generateToken();
 
       if (!isUserVerified) {
@@ -218,7 +222,6 @@ exports.deletePlan = async (req, res) => {
   const { plan } = req.body;
   try {
     const deleted = await stripe.plans.del(plan);
-
     return res.status(200).json({ message: "Plan Deleted", deleted });
   } catch (error) {
     return res.status(500).json({ message: error.message });

@@ -20,7 +20,7 @@ async function VerifyUserToken(req, res, next) {
       next();
     }
   } catch (error) {
-    console.log(error, "error in middleware");
+    return res.status(500).json({ message: error.message });
   }
 }
 
