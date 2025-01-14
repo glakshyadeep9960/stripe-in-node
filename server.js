@@ -6,6 +6,44 @@ const path = require("path");
 const databaseConnection = require("./configs/db");
 const UserRouter = require("./routers/user");
 const StripeRouter = require("./routers/stripe");
+const passport = require("passport");
+const session = require("express-session");
+const { Strategy: GoogleStrategy } = require("passport-google-oauth20");
+
+app.use(
+  session({
+    secret: "your_secret_key",
+    resave: false,
+    saveUninitialized: true,
+  })
+);
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Serialize user info into the session
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+
+// Deserialize user info from the session
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
+
+// Google OAuth Strategy
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_AUTH_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_AUTH_SECRET_KEY,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL,
+    },
+    (accessToken, refreshToken, profile, done) => {
+      // Process the user profile information
+      return done(null, profile);
+    }
+  )
+);
 
 app.use("uploads", express.static(path.resolve(__dirname, "uploads")));
 
