@@ -4,15 +4,12 @@ const bcrypt = require("bcrypt");
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
   },
   email: {
     type: String,
-    required: true,
   },
   phone: {
     type: String,
-    required: true,
   },
   stripeId: {
     type: String,
@@ -26,7 +23,6 @@ const userSchema = new mongoose.Schema({
   },
   address: {
     type: String,
-    required: true,
   },
   isSubscribed: {
     type: Boolean,
@@ -39,6 +35,9 @@ const userSchema = new mongoose.Schema({
   subscriptionId: {
     type: String,
     default: "Not Subscribed",
+  },
+  googleId: {
+    type: String,
   },
 });
 
