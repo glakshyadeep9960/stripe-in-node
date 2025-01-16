@@ -1,7 +1,7 @@
 const express = require("express");
 const passport = require("passport");
 const authRouter = express.Router();
-
+const jwt = require("jsonwebtoken");
 authRouter.get(
   "/google",
   passport.authenticate("google", {
@@ -15,12 +15,20 @@ authRouter.get(
   "/google/callback",
   passport.authenticate("google", {
     failureRedirect: "http://localhost:3000/login",
-    successRedirect: "http://localhost:3000/dashboard",
+    // successRedirect: "http://localhost:3000/dashboard",
     session: true,
   }),
   (req, res) => {
     // Successful authentication
-    res.redirect("http://localhost:3000/dashboard");
+    const userPayload = {
+      id: req.user.id,
+      name: req.user.name,
+      email: req.user.email,
+    };
+    const token = jwt.sign(userPayload, process.env.JWT_SECRET_KEY, {
+      expiresIn: "10h",
+    });
+    res.redirect(`http://localhost:3000/dashboard?token=${token}`);
   }
 );
 
