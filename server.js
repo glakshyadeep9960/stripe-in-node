@@ -11,6 +11,7 @@ const session = require("express-session");
 const { Strategy: GoogleStrategy } = require("passport-google-oauth20");
 const User = require("./models/user");
 const authRouter = require("./routers/auth");
+const aiRouter = require("./routers/ai");
 app.use(
   cors({
     origin: "*",
@@ -85,16 +86,15 @@ app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/api/v1/auth", authRouter);
-
 app.get("/", (req, res) => {
   return res.status(200).json({ message: "App is running" });
 });
 
 databaseConnection();
+app.use("/api/v1/auth", authRouter);
 
 app.use("/api/v1/user", UserRouter);
-
+app.use("/api/v1/ai", aiRouter);
 app.listen(process.env.PORT, () => {
   console.log(`App is running on ${process.env.PORT}`);
 });
