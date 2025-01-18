@@ -1,8 +1,26 @@
 const express = require("express");
-const GeminiAi = require("../gemini-ai/ai");
 const VerifyUserToken = require("../middleware/verifyUser");
+const {
+  GeminiAiTextGeneration,
+  GeminiTextGenerationFromImage,
+} = require("../gemini-ai/ai");
+const multer = require("multer");
 const aiRouter = express.Router();
+const path = require("path");
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./uploads");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
 
-aiRouter.route("/test").post(VerifyUserToken, GeminiAi);
+const upload = multer({ storage: storage });
+
+aiRouter.route("/generate-text").post(VerifyUserToken, GeminiAiTextGeneration);
+aiRouter
+  .route("/generate-text-from-image")
+  .post(upload.single("file"), VerifyUserToken, GeminiTextGenerationFromImage);
 
 module.exports = aiRouter;
