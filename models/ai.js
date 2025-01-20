@@ -5,10 +5,10 @@ const aiSchema = new mongoose.Schema({
     type: String,
   },
   question: {
-    type: String,
+    type: Array,
   },
   answer: {
-    type: String,
+    type: Array,
   },
   subscriptionId: {
     type: String,

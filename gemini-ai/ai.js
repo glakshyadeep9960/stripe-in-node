@@ -10,48 +10,75 @@ const model = genAI.getGenerativeModel({
     "You are an Ai Agent named Jarvis ok you have to give appropriate response with example code if needed ok to give user suitable response. You have to remember which topic is on the user is ok, User should not have to repeat the subject again and again.",
 });
 
+async function createChat(req, res) {
+  const { id } = req.user;
+
+  try {
+    const findUser = await User.findById(id);
+    const newChat = await Ai.create({
+      userId: id,
+      subscriptionId: findUser.subscriptionId,
+      googleId: findUser.googleId,
+    });
+
+    return res.status(201).json({
+      message: "Chat has been created",
+      chatId: newChat._id.toString(),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "An Error Occured at Creating chat",
+      error: error?.message,
+    });
+  }
+}
+
 async function GeminiAiTextGeneration(req, res) {
   const { id } = req.user;
-  const { question } = req.body;
+  const { chatId, question } = req.body;
   try {
-    const userDetails = await User.findById(id);
-
-    const chat = model.startChat({
-      history: [
-        {
-          role: "user",
-          parts: [{ text: "Hello" }],
+    const findChat = await Ai.findOne({ _id: chatId, userId: id });
+    if (findChat) {
+      const chat = model.startChat({
+        history: [
+          {
+            role: "user",
+            parts: [{ text: "Hello" }],
+          },
+          {
+            role: "model",
+            parts: [
+              { text: "Great to meet you. What would you like to know?" },
+            ],
+          },
+        ],
+        generationConfig: {
+          maxOutputTokens: 1500,
+          temperature: 0.1,
         },
-        {
-          role: "model",
-          parts: [{ text: "Great to meet you. What would you like to know?" }],
-        },
-      ],
-      generationConfig: {
-        maxOutputTokens: 1500,
-        temperature: 0.1,
-      },
-    });
+      });
 
-    let result = await chat.sendMessageStream(question);
-    res.status(200).setHeader("Content-Type", "text/plain");
-    const chunks = [];
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      chunks.push(chunkText);
-      console.log(chunkText);
-      res.write(chunkText);
+      let result = await chat.sendMessageStream(question);
+      res.status(200).setHeader("Content-Type", "text/plain");
+      const chunks = [];
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        chunks.push(chunkText);
+        console.log(chunkText);
+        res.write(chunkText);
+      }
+
+      const fullResponse = chunks.join("");
+      const findAi = await Ai.findById(chatId);
+      if (findAi) {
+        findAi.question.push(question);
+        findAi.answer.push(fullResponse);
+        await findAi.save();
+      }
+      res.end();
+    } else {
+      return res.status(404).json({ message: "Chat not find!" });
     }
-
-    const fullResponse = chunks.join("");
-    await Ai.create({
-      userId: id,
-      question: question,
-      answer: fullResponse,
-      subscriptionId: userDetails.subscriptionId,
-      googleId: userDetails.googleId,
-    });
-    res.end();
   } catch (error) {
     console.log(error, "ai error");
 
@@ -103,4 +130,8 @@ async function GeminiTextGenerationFromImage(req, res) {
   }
 }
 
-module.exports = { GeminiAiTextGeneration, GeminiTextGenerationFromImage };
+module.exports = {
+  createChat,
+  GeminiAiTextGeneration,
+  GeminiTextGenerationFromImage,
+};
