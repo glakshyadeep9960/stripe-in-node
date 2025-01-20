@@ -4,6 +4,9 @@ const aiSchema = new mongoose.Schema({
   userId: {
     type: String,
   },
+  chatName: {
+    type: String,
+  },
   question: {
     type: Array,
   },

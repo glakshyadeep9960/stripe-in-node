@@ -4,6 +4,8 @@ const {
   GeminiAiTextGeneration,
   GeminiTextGenerationFromImage,
   createChat,
+  getMessages,
+  getChats,
 } = require("../gemini-ai/ai");
 const multer = require("multer");
 const aiRouter = express.Router();
@@ -19,6 +21,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 aiRouter.route("/create-chat").post(VerifyUserToken, createChat);
+aiRouter.route("/get-chats").get(VerifyUserToken, getChats);
+aiRouter.route("/get-messages").post(VerifyUserToken, getMessages);
 aiRouter.route("/generate-text").post(VerifyUserToken, GeminiAiTextGeneration);
 aiRouter
   .route("/generate-text-from-image")

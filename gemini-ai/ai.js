@@ -12,7 +12,6 @@ const model = genAI.getGenerativeModel({
 
 async function createChat(req, res) {
   const { id } = req.user;
-
   try {
     const findUser = await User.findById(id);
     const newChat = await Ai.create({
@@ -75,6 +74,15 @@ async function GeminiAiTextGeneration(req, res) {
         findAi.answer.push(fullResponse);
         await findAi.save();
       }
+
+      const chatName = await Ai.findById(chatId);
+      await Ai.updateOne(
+        { _id: chatId, userId: id },
+        {
+          chatName: chatName.question[0],
+        }
+      );
+
       res.end();
     } else {
       return res.status(404).json({ message: "Chat not find!" });
@@ -83,6 +91,60 @@ async function GeminiAiTextGeneration(req, res) {
     console.log(error, "ai error");
 
     return res.status(500).json({ message: "An Error Occured at AI api" });
+  }
+}
+
+async function getChats(req, res) {
+  const { id } = req.user;
+
+  try {
+    const findChats = await Ai.find({ userId: id }).select("-question -answer");
+
+    if (!findChats) {
+      return res.status(400).json({ message: "No Chats Found!" });
+    } else {
+      const data = findChats?.map((item) => item);
+
+      return res.status(200).json({
+        message: "Chats has been fetched",
+        data: data,
+      });
+    }
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Error In Fetching Chats", error: error.message });
+  }
+}
+
+async function getMessages(req, res) {
+  const { id } = req.user;
+
+  const { chatId } = req.body;
+
+  try {
+    const data = await Ai.findOne({ userId: id, _id: chatId });
+    console.log(data);
+
+    if (!data) {
+      return res.status(404).json({ message: "No Messages Find!" });
+    } else {
+      const questions = data?.question?.map((item) => item);
+      const answers = data?.answer?.map((item) => item);
+
+      return res.status(200).json({
+        message: "Data has been fetched",
+        data: {
+          questions,
+          answers,
+        },
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error Occured at Fetching Messages",
+      error: error.message,
+    });
   }
 }
 
@@ -132,6 +194,8 @@ async function GeminiTextGenerationFromImage(req, res) {
 
 module.exports = {
   createChat,
+  getChats,
+  getMessages,
   GeminiAiTextGeneration,
   GeminiTextGenerationFromImage,
 };
