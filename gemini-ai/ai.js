@@ -148,6 +148,42 @@ async function getMessages(req, res) {
   }
 }
 
+async function renameChat(req, res) {
+  const { id } = req.user;
+  const { chatId, chatName } = req.body;
+  try {
+    const findChat = await Ai.findOne({ _id: chatId, userId: id });
+    if (!findChat) {
+      return res.status(404).json({ message: "No Chat Found!" });
+    } else {
+      await Ai.updateOne({ _id: chatId, userId: id }, { chatName: chatName });
+      return res.status(200).json({ message: "Chat Name has been Changed" });
+    }
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Error Occured at Server side", error: error.message });
+  }
+}
+
+async function deleteChat(req, res) {
+  const { id } = req.user;
+  const { chatId } = req.params;
+  try {
+    let findChat = await Ai.findOne({ userId: id, _id: chatId });
+    if (!findChat) {
+      return res.status(404).json({ message: "No chat found!" });
+    } else {
+      await Ai.deleteOne({ _id: chatId });
+      return res.status(200).json({ message: "Chat has been deleted" });
+    }
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Error Occured at Server side", error: error.message });
+  }
+}
+
 async function GeminiTextGenerationFromImage(req, res) {
   try {
     const { id } = req.user;
@@ -198,4 +234,6 @@ module.exports = {
   getMessages,
   GeminiAiTextGeneration,
   GeminiTextGenerationFromImage,
+  renameChat,
+  deleteChat,
 };

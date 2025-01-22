@@ -6,6 +6,8 @@ const {
   createChat,
   getMessages,
   getChats,
+  renameChat,
+  deleteChat,
 } = require("../gemini-ai/ai");
 const multer = require("multer");
 const aiRouter = express.Router();
@@ -22,6 +24,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 aiRouter.route("/create-chat").post(VerifyUserToken, createChat);
 aiRouter.route("/get-chats").get(VerifyUserToken, getChats);
+aiRouter.route("/rename-chat").put(VerifyUserToken, renameChat);
+aiRouter.route("/delete-chat/:chatId").delete(VerifyUserToken, deleteChat);
 aiRouter.route("/get-messages").post(VerifyUserToken, getMessages);
 aiRouter.route("/generate-text").post(VerifyUserToken, GeminiAiTextGeneration);
 aiRouter
