@@ -1,7 +1,7 @@
 const User = require("../models/user");
 const sendMail = require("./sendMail");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-
+const bcrypt = require("bcrypt");
 exports.registerUser = async (req, res) => {
   const { name, email, password, phone, address } = req.body;
   if (!name || !email || !password || !phone || !address) {
@@ -179,6 +179,62 @@ exports.changePassword = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Error Occured at Changing password" });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const findUser = await User.findOne({ email });
+    if (!findUser) {
+      return res.status(404).json({ message: "No user found!" });
+    } else {
+      const isVerified = findUser.isVerified;
+      if (isVerified === true) {
+        const token = await findUser.generateToken();
+        const message = `${process.env.CLIENT_URL}/auth/reset-password/${token}`;
+        await sendMail(email, "Reset Your Password", message);
+        return res
+          .status(200)
+          .json({ message: "Verify Your Account from Your Mail!" });
+      } else {
+        const token = await findUser.generateToken();
+        const message = token;
+        await sendMail(email, "Verify Your Account", message);
+        return res
+          .status(400)
+          .json({
+            message:
+              "User not verified Yet!, Please verify your account from your mail",
+          });
+      }
+    }
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error Occured at Forgot Password API",
+      error: error.message,
+    });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  const { id } = req.user;
+  const { password } = req.body;
+  try {
+    const findUser = await User.findById(id);
+    if (!findUser) {
+      return res.status(404).json({ message: "No User found!" });
+    } else {
+      const genSalt = await bcrypt.genSalt(12);
+      const hashPassword = await bcrypt.hash(password, genSalt);
+      await User.updateOne({ _id: id }, { password: hashPassword });
+      return res.status(200).json({ message: "Password Updated Successfully" });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error Occured at Reset Password Api",
+      error: error.message,
+    });
   }
 };
 
