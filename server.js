@@ -54,7 +54,11 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        let user = await User.findOne({ googleId: profile.id });
+        console.log(profile, "check test");
+
+        let user = await User.findOne({
+          email: profile.emails[0].value,
+        });
         if (!user) {
           user = new User({
             googleId: profile.id,
@@ -67,6 +71,7 @@ passport.use(
         } else {
           if (user.isVerified === false) {
             user.isVerified = true;
+            user.googleId = profile.id;
             await user.save();
           }
         }
