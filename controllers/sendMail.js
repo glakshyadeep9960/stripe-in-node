@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 
-async function sendMail(email, subject, message) {
+async function sendMail(email, subject, message, req, res) {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -18,9 +18,10 @@ async function sendMail(email, subject, message) {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log("Email Sent");
   } catch (error) {
-    console.log(error, "Error in sending email");
+    return res
+      .status(500)
+      .json({ message: "An Error at Sending Mail", error: error.message });
   }
 }
 

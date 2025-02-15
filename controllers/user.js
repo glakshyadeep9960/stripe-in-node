@@ -192,21 +192,21 @@ exports.forgotPassword = async (req, res) => {
       const isVerified = findUser.isVerified;
       if (isVerified === true) {
         const token = await findUser.generateToken();
-        const message = `${process.env.CLIENT_URL}/auth/reset-password/${token}`;
-        await sendMail(email, "Reset Your Password", message);
+        const message = `${process.env.CLIENT_URL}/auth/user/verify-account/${token}`;
+        await sendMail(email, "Verify Your account", message);
         return res
           .status(200)
           .json({ message: "Verify Your Account from Your Mail!" });
       } else {
         const token = await findUser.generateToken();
-        const message = token;
+
+        const message = `${process.env.CLIENT_URL}/auth/user/verify-account/${token}`;
+
         await sendMail(email, "Verify Your Account", message);
-        return res
-          .status(400)
-          .json({
-            message:
-              "User not verified Yet!, Please verify your account from your mail",
-          });
+        return res.status(400).json({
+          message:
+            "User not verified Yet!, Please verify your account from your mail",
+        });
       }
     }
   } catch (error) {

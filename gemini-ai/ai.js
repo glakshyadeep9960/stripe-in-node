@@ -32,73 +32,245 @@ async function createChat(req, res) {
   }
 }
 
+// async function GeminiAiTextGeneration(req, res) {
+//   const { id } = req.user;
+//   const { chatId, question } = req.body;
+//   try {
+//     const findChat = await Ai.findOne({ _id: chatId, userId: id });
+//     if (findChat) {
+//       const chat = model.startChat({
+//         history: [
+//           {
+//             role: "user",
+//             parts: [{ text: "Hello" }],
+//           },
+//           {
+//             role: "model",
+//             parts: [
+//               { text: "Great to meet you. What would you like to know?" },
+//             ],
+//           },
+//         ],
+//         generationConfig: {
+//           maxOutputTokens: 1500,
+//           temperature: 0.1,
+//         },
+//       });
+
+//       let result = await chat.sendMessageStream(question);
+//       res.status(200).setHeader("Content-Type", "text/plain");
+//       const chunks = [];
+//       for await (const chunk of result.stream) {
+//         const chunkText = chunk.text();
+//         chunks.push(chunkText);
+//         console.log(chunkText);
+//         res.write(chunkText);
+//       }
+
+//       const fullResponse = chunks.join("");
+//       const findAi = await Ai.findById(chatId);
+//       if (findAi) {
+//         findAi.question.push(question);
+//         findAi.answer.push(fullResponse);
+//         await findAi.save();
+//       }
+
+//       const chatName = await Ai.findById(chatId);
+//       await Ai.updateOne(
+//         { _id: chatId, userId: id },
+//         {
+//           chatName: chatName.question[0],
+//         }
+//       );
+
+//       res.end();
+//     } else {
+//       return res.status(404).json({ message: "Chat not find!" });
+//     }
+//   } catch (error) {
+//     console.log(error, "ai error");
+
+//     return res.status(500).json({ message: "An Error Occured at AI api" });
+//   }
+// }
+// async function GeminiAiTextGeneration(req, res) {
+//   const { id } = req.user;
+//   const { chatId, question } = req.body;
+
+//   try {
+//     let questions = [];
+//     questions.push(question);
+//     let chatData = await Ai.findOne({ chatId, userId: id });
+
+//     if (!chatData) {
+//       chatData = new Ai({
+//         userId: id,
+//         chatId,
+//         messages: {
+//           role: "user",
+//           text: question,
+//         },
+//         chatName: question,
+//       }); // Create a new chat if it doesn't exist
+//     }
+
+//     //Improved Topic Detection (still basic, but better than before)
+//     const keywords = {
+//       weather: ["weather", "temperature", "forecast", "climate"],
+//       programming: [
+//         "javascript",
+//         "python",
+//         "coding",
+//         "programming",
+//         "code",
+//         "function",
+//       ],
+//       travel: ["travel", "vacation", "trip", "flight", "hotel", "destination"],
+//       // Add more topics and keywords as needed
+//     };
+
+//     let detectedTopic = null;
+//     for (const topic in keywords) {
+//       if (
+//         keywords[topic].some((keyword) =>
+//           question.toLowerCase().includes(keyword)
+//         )
+//       ) {
+//         detectedTopic = topic;
+//         break;
+//       }
+//     }
+
+//     chatData.topic = detectedTopic || chatData.topic; // Update or retain existing topic
+
+//     const chatHistory = chatData.messages.map((msg) => ({
+//       role: msg.role,
+//       parts: [{ text: msg.text }],
+//     }));
+
+//     const chat = model.startChat({
+//       history: chatHistory,
+//       generationConfig: {
+//         maxOutputTokens: 1500,
+//         temperature: 0.1,
+//       },
+//     });
+
+//     let result = await chat.sendMessageStream(question);
+//     res.status(200).setHeader("Content-Type", "text/plain");
+//     const chunks = [];
+//     for await (const chunk of result.stream) {
+//       const chunkText = chunk.text();
+//       chunks.push(chunkText);
+//       console.log(chunkText);
+//       res.write(chunkText);
+//     }
+//     const fullResponse = chunks.join("");
+
+//     chatData.messages.push({ role: "user", text: question });
+//     chatData.messages.push({ role: "model", text: fullResponse });
+//     const findChat = await Ai.findOne({ _id: chatId, userId: id });
+//     if (findChat.messages.length === 0) {
+//       chatData.chatName = question;
+//       await chatData.save();
+//     } else {
+//       chatData.chatName = findChat.messages[0].text;
+//       await chatData.save();
+//     }
+
+//     res.end();
+//   } catch (error) {
+//     console.error(error, "ai error");
+//     res.status(500).json({ message: "An Error Occured at AI api" });
+//   }
+// }
 async function GeminiAiTextGeneration(req, res) {
   const { id } = req.user;
   const { chatId, question } = req.body;
+
   try {
-    const findChat = await Ai.findOne({ _id: chatId, userId: id });
-    if (findChat) {
-      const chat = model.startChat({
-        history: [
-          {
-            role: "user",
-            parts: [{ text: "Hello" }],
-          },
-          {
-            role: "model",
-            parts: [
-              { text: "Great to meet you. What would you like to know?" },
-            ],
-          },
-        ],
-        generationConfig: {
-          maxOutputTokens: 1500,
-          temperature: 0.1,
-        },
+    let chatData = await Ai.findOne({ chatId, userId: id });
+
+    if (!chatData) {
+      chatData = new Ai({
+        userId: id,
+        chatId,
+        messages: [{ role: "user", text: question }],
+        chatName: question,
       });
-
-      let result = await chat.sendMessageStream(question);
-      res.status(200).setHeader("Content-Type", "text/plain");
-      const chunks = [];
-      for await (const chunk of result.stream) {
-        const chunkText = chunk.text();
-        chunks.push(chunkText);
-        console.log(chunkText);
-        res.write(chunkText);
-      }
-
-      const fullResponse = chunks.join("");
-      const findAi = await Ai.findById(chatId);
-      if (findAi) {
-        findAi.question.push(question);
-        findAi.answer.push(fullResponse);
-        await findAi.save();
-      }
-
-      const chatName = await Ai.findById(chatId);
-      await Ai.updateOne(
-        { _id: chatId, userId: id },
-        {
-          chatName: chatName.question[0],
-        }
-      );
-
-      res.end();
-    } else {
-      return res.status(404).json({ message: "Chat not find!" });
+      await chatData.save();
+    } else if (chatData.messages.length === 0) {
+      chatData.chatName = question;
+      await chatData.save();
     }
-  } catch (error) {
-    console.log(error, "ai error");
 
-    return res.status(500).json({ message: "An Error Occured at AI api" });
+    const keywords = {
+      weather: ["weather", "temperature", "forecast", "climate"],
+      programming: [
+        "javascript",
+        "python",
+        "coding",
+        "programming",
+        "code",
+        "function",
+      ],
+      travel: ["travel", "vacation", "trip", "flight", "hotel", "destination"],
+      // Add more topics and keywords as needed
+    };
+
+    let detectedTopic = null;
+    for (const topic in keywords) {
+      if (
+        keywords[topic].some((keyword) =>
+          question.toLowerCase().includes(keyword)
+        )
+      ) {
+        detectedTopic = topic;
+        break;
+      }
+    }
+
+    chatData.topic = detectedTopic || chatData.topic;
+
+    const chatHistory = chatData.messages.map((msg) => ({
+      role: msg.role,
+      parts: [{ text: msg.text }],
+    }));
+
+    const chat = model.startChat({
+      history: chatHistory,
+      generationConfig: {
+        maxOutputTokens: 1500,
+        temperature: 0.1,
+      },
+    });
+
+    let result = await chat.sendMessageStream(question);
+    res.status(200).setHeader("Content-Type", "text/plain");
+    const chunks = [];
+    for await (const chunk of result.stream) {
+      const chunkText = chunk.text();
+      chunks.push(chunkText);
+      console.log(chunkText);
+      res.write(chunkText);
+    }
+    const fullResponse = chunks.join("");
+
+    chatData.messages.push({ role: "user", text: question });
+    chatData.messages.push({ role: "model", text: fullResponse });
+    await chatData.save();
+
+    res.end();
+  } catch (error) {
+    console.error(error, "ai error");
+    res.status(500).json({ message: "An Error Occured at AI api" });
   }
 }
-
 async function getChats(req, res) {
   const { id } = req.user;
 
   try {
-    const findChats = await Ai.find({ userId: id }).select("-question -answer");
+    const findChats = await Ai.find({ userId: id }).select("-messages -topic");
 
     if (!findChats) {
       return res.status(400).json({ message: "No Chats Found!" });
@@ -129,14 +301,12 @@ async function getMessages(req, res) {
     if (!data) {
       return res.status(404).json({ message: "No Messages Find!" });
     } else {
-      const questions = data?.question?.map((item) => item);
-      const answers = data?.answer?.map((item) => item);
+      const messages = data.messages.map((item) => item);
 
       return res.status(200).json({
         message: "Data has been fetched",
         data: {
-          questions,
-          answers,
+          messages,
         },
       });
     }
