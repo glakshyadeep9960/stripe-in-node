@@ -95,21 +95,7 @@ exports.stripeWebhook = async (req, res) => {
           },
         }
       );
-      // const invoice = await stripe.invoices.retrieve(paymentIntent.invoice);
-      // console.log(invoice.subscription, "invoice from webhook lavi");
 
-      // const customer = paymentIntent?.customer;
-      // if (User && customer) {
-      //   const updatedData = {
-      //     isSubscribed: true,
-      //     plan: paymentIntent?.amount === 50000 ? "Yearly" : "Monthly",
-      //     subscriptionId: invoice.subscription,
-      //   };
-      //   await User.updateOne({ stripeId: customer }, { $set: updatedData });
-      // }
-      // console.log(paymentIntent, "data coming from webhook");
-
-      // console.log(`PaymentIntent for ${paymentIntent.amount} was successful!`);
       break;
 
     case "customer.subscription.updated":

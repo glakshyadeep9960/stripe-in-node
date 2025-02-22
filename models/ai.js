@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 
 const aiSchema = new mongoose.Schema({
   userId: { type: String, required: true },
-  chatId: { type: String, unique: true },
   topic: { type: String, default: null },
   messages: [
     {
@@ -16,4 +15,5 @@ const aiSchema = new mongoose.Schema({
 });
 
 const Ai = mongoose.model("Ai", aiSchema);
+
 module.exports = Ai;

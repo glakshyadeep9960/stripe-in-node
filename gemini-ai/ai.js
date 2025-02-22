@@ -3,6 +3,7 @@ const User = require("../models/user");
 const Ai = require("../models/ai");
 const path = require("path");
 const fs = require("fs");
+const { userInfo } = require("os");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_AI_SECRET_KEY);
 const model = genAI.getGenerativeModel({
   model: "gemini-1.5-flash",
@@ -22,7 +23,7 @@ async function createChat(req, res) {
 
     return res.status(201).json({
       message: "Chat has been created",
-      chatId: newChat._id.toString(),
+      chatId: newChat._id,
     });
   } catch (error) {
     return res.status(500).json({
@@ -32,178 +33,11 @@ async function createChat(req, res) {
   }
 }
 
-// async function GeminiAiTextGeneration(req, res) {
-//   const { id } = req.user;
-//   const { chatId, question } = req.body;
-//   try {
-//     const findChat = await Ai.findOne({ _id: chatId, userId: id });
-//     if (findChat) {
-//       const chat = model.startChat({
-//         history: [
-//           {
-//             role: "user",
-//             parts: [{ text: "Hello" }],
-//           },
-//           {
-//             role: "model",
-//             parts: [
-//               { text: "Great to meet you. What would you like to know?" },
-//             ],
-//           },
-//         ],
-//         generationConfig: {
-//           maxOutputTokens: 1500,
-//           temperature: 0.1,
-//         },
-//       });
-
-//       let result = await chat.sendMessageStream(question);
-//       res.status(200).setHeader("Content-Type", "text/plain");
-//       const chunks = [];
-//       for await (const chunk of result.stream) {
-//         const chunkText = chunk.text();
-//         chunks.push(chunkText);
-//         console.log(chunkText);
-//         res.write(chunkText);
-//       }
-
-//       const fullResponse = chunks.join("");
-//       const findAi = await Ai.findById(chatId);
-//       if (findAi) {
-//         findAi.question.push(question);
-//         findAi.answer.push(fullResponse);
-//         await findAi.save();
-//       }
-
-//       const chatName = await Ai.findById(chatId);
-//       await Ai.updateOne(
-//         { _id: chatId, userId: id },
-//         {
-//           chatName: chatName.question[0],
-//         }
-//       );
-
-//       res.end();
-//     } else {
-//       return res.status(404).json({ message: "Chat not find!" });
-//     }
-//   } catch (error) {
-//     console.log(error, "ai error");
-
-//     return res.status(500).json({ message: "An Error Occured at AI api" });
-//   }
-// }
-// async function GeminiAiTextGeneration(req, res) {
-//   const { id } = req.user;
-//   const { chatId, question } = req.body;
-
-//   try {
-//     let questions = [];
-//     questions.push(question);
-//     let chatData = await Ai.findOne({ chatId, userId: id });
-
-//     if (!chatData) {
-//       chatData = new Ai({
-//         userId: id,
-//         chatId,
-//         messages: {
-//           role: "user",
-//           text: question,
-//         },
-//         chatName: question,
-//       }); // Create a new chat if it doesn't exist
-//     }
-
-//     //Improved Topic Detection (still basic, but better than before)
-//     const keywords = {
-//       weather: ["weather", "temperature", "forecast", "climate"],
-//       programming: [
-//         "javascript",
-//         "python",
-//         "coding",
-//         "programming",
-//         "code",
-//         "function",
-//       ],
-//       travel: ["travel", "vacation", "trip", "flight", "hotel", "destination"],
-//       // Add more topics and keywords as needed
-//     };
-
-//     let detectedTopic = null;
-//     for (const topic in keywords) {
-//       if (
-//         keywords[topic].some((keyword) =>
-//           question.toLowerCase().includes(keyword)
-//         )
-//       ) {
-//         detectedTopic = topic;
-//         break;
-//       }
-//     }
-
-//     chatData.topic = detectedTopic || chatData.topic; // Update or retain existing topic
-
-//     const chatHistory = chatData.messages.map((msg) => ({
-//       role: msg.role,
-//       parts: [{ text: msg.text }],
-//     }));
-
-//     const chat = model.startChat({
-//       history: chatHistory,
-//       generationConfig: {
-//         maxOutputTokens: 1500,
-//         temperature: 0.1,
-//       },
-//     });
-
-//     let result = await chat.sendMessageStream(question);
-//     res.status(200).setHeader("Content-Type", "text/plain");
-//     const chunks = [];
-//     for await (const chunk of result.stream) {
-//       const chunkText = chunk.text();
-//       chunks.push(chunkText);
-//       console.log(chunkText);
-//       res.write(chunkText);
-//     }
-//     const fullResponse = chunks.join("");
-
-//     chatData.messages.push({ role: "user", text: question });
-//     chatData.messages.push({ role: "model", text: fullResponse });
-//     const findChat = await Ai.findOne({ _id: chatId, userId: id });
-//     if (findChat.messages.length === 0) {
-//       chatData.chatName = question;
-//       await chatData.save();
-//     } else {
-//       chatData.chatName = findChat.messages[0].text;
-//       await chatData.save();
-//     }
-
-//     res.end();
-//   } catch (error) {
-//     console.error(error, "ai error");
-//     res.status(500).json({ message: "An Error Occured at AI api" });
-//   }
-// }
 async function GeminiAiTextGeneration(req, res) {
   const { id } = req.user;
   const { chatId, question } = req.body;
 
   try {
-    let chatData = await Ai.findOne({ chatId, userId: id });
-
-    if (!chatData) {
-      chatData = new Ai({
-        userId: id,
-        chatId,
-        messages: [{ role: "user", text: question }],
-        chatName: question,
-      });
-      await chatData.save();
-    } else if (chatData.messages.length === 0) {
-      chatData.chatName = question;
-      await chatData.save();
-    }
-
     const keywords = {
       weather: ["weather", "temperature", "forecast", "climate"],
       programming: [
@@ -218,6 +52,20 @@ async function GeminiAiTextGeneration(req, res) {
       // Add more topics and keywords as needed
     };
 
+    let chatData;
+    if (chatId) {
+      // If chatId exists, retrieve the chat data.
+      chatData = await Ai.findOne({ _id: chatId, userId: id });
+      if (!chatData) {
+        throw new Error("Chat not found");
+      }
+      if (chatData.messages.length === 0) {
+        chatData.chatName = question;
+        await chatData.save();
+      }
+    }
+
+    // Determine the topic based on keywords.
     let detectedTopic = null;
     for (const topic in keywords) {
       if (
@@ -229,9 +77,8 @@ async function GeminiAiTextGeneration(req, res) {
         break;
       }
     }
-
     chatData.topic = detectedTopic || chatData.topic;
-
+    // Prepare the chat history for the conversation.
     const chatHistory = chatData.messages.map((msg) => ({
       role: msg.role,
       parts: [{ text: msg.text }],
@@ -245,6 +92,7 @@ async function GeminiAiTextGeneration(req, res) {
       },
     });
 
+    // Send the question to the AI and stream the response.
     let result = await chat.sendMessageStream(question);
     res.status(200).setHeader("Content-Type", "text/plain");
     const chunks = [];
@@ -256,6 +104,7 @@ async function GeminiAiTextGeneration(req, res) {
     }
     const fullResponse = chunks.join("");
 
+    // Update chat history with the new conversation.
     chatData.messages.push({ role: "user", text: question });
     chatData.messages.push({ role: "model", text: fullResponse });
     await chatData.save();
@@ -263,9 +112,14 @@ async function GeminiAiTextGeneration(req, res) {
     res.end();
   } catch (error) {
     console.error(error, "ai error");
-    res.status(500).json({ message: "An Error Occured at AI api" });
+    if (!res.headersSent) {
+      res.status(500).json({ message: "An Error Occurred at AI API" });
+    } else {
+      res.end();
+    }
   }
 }
+
 async function getChats(req, res) {
   const { id } = req.user;
 
@@ -358,11 +212,14 @@ async function GeminiTextGenerationFromImage(req, res) {
   try {
     const { id } = req.user;
     const file = req?.file;
-
+    const { chatId } = req.body;
     if (!file) {
       return res.status(400).json({ message: "Please upload an image file." });
     }
-
+    const findChat = await Ai.findOne({ _id: chatId });
+    if (!findChat) {
+      return res.status(404).json({ message: "No Chat Found" });
+    }
     const fileName = file.originalname;
     const userDetails = await User.findById(id);
 
@@ -377,15 +234,9 @@ async function GeminiTextGenerationFromImage(req, res) {
       },
       "Caption this image.",
     ]);
-
-    await Ai.create({
-      userId: id,
-      question: fileName,
-      answer: result.response.text(),
-      subscriptionId: userDetails?.subscriptionId,
-      googleId: userDetails?.googleId,
-    });
-
+    findChat.messages.push({ role: "user", text: fileName });
+    findChat.messages.push({ role: "model", text: result.response.text() });
+    await findChat.save();
     return res.status(200).json({
       message: "Response has been fetched",
       data: result.response.text(),

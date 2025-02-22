@@ -12,6 +12,11 @@ const { Strategy: GoogleStrategy } = require("passport-google-oauth20");
 const User = require("./models/user");
 const authRouter = require("./routers/auth");
 const aiRouter = require("./routers/ai");
+
+app.use("uploads", express.static(path.resolve(__dirname, "uploads")));
+
+app.use("/api/v1/stripe", StripeRouter);
+
 app.use(
   cors({
     origin: "*",
@@ -81,12 +86,7 @@ passport.use(
   )
 );
 
-app.use("uploads", express.static(path.resolve(__dirname, "uploads")));
-
-app.use("/api/v1/stripe", StripeRouter);
-
 app.use(express.json());
-
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
@@ -94,8 +94,8 @@ app.get("/", (req, res) => {
 });
 
 databaseConnection();
-app.use("/api/v1/auth", authRouter);
 
+app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user", UserRouter);
 app.use("/api/v1/ai", aiRouter);
 app.listen(process.env.PORT, () => {
