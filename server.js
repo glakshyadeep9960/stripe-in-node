@@ -13,8 +13,6 @@ const User = require("./models/user");
 const authRouter = require("./routers/auth");
 const aiRouter = require("./routers/ai");
 
-app.use("uploads", express.static(path.resolve(__dirname, "uploads")));
-
 app.use("/api/v1/stripe", StripeRouter);
 
 app.use(
@@ -87,6 +85,8 @@ passport.use(
 );
 
 app.use(express.json());
+
+app.use("/uploads", express.static(path.resolve(__dirname, "uploads")));
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {

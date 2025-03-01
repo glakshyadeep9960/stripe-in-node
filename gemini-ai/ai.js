@@ -220,9 +220,9 @@ async function GeminiTextGenerationFromImage(req, res) {
     if (!findChat) {
       return res.status(404).json({ message: "No Chat Found" });
     }
-    const fileName = file.originalname;
+    const fileName = path.basename(file.path);
     const userDetails = await User.findById(id);
-
+    const url = `${process.env.BACKEND_URL}/uploads/${fileName}`;
     const imageBuffer = await fs.promises.readFile(file.path);
 
     const result = await model.generateContent([
@@ -234,7 +234,7 @@ async function GeminiTextGenerationFromImage(req, res) {
       },
       "Caption this image.",
     ]);
-    findChat.messages.push({ role: "user", text: fileName });
+    findChat.messages.push({ role: "user", text: url });
     findChat.messages.push({ role: "model", text: result.response.text() });
     await findChat.save();
     return res.status(200).json({
