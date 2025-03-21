@@ -87,7 +87,7 @@ async function GeminiAiTextGeneration(req, res) {
     const chat = model.startChat({
       history: chatHistory,
       generationConfig: {
-        maxOutputTokens: 1500,
+        maxOutputTokens: 2000,
         temperature: 0.1,
       },
     });
