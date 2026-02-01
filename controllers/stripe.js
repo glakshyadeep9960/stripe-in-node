@@ -67,7 +67,7 @@ exports.stripeWebhook = async (req, res) => {
       event = stripe.webhooks.constructEvent(
         req.body,
         signature,
-        endpointSecret
+        endpointSecret,
       );
     } catch (error) {
       console.log(`⚠️  Webhook signature verification failed.`, error.message);
@@ -90,10 +90,16 @@ exports.stripeWebhook = async (req, res) => {
               event.data.object.plan.id === process.env.YEARLY_PLAN
                 ? "Yearly"
                 : process.env.MONTHLY_PLAN
-                ? "Monthly"
-                : "Free",
+                  ? "Monthly"
+                  : "Free",
+            messageLimit:
+              event.data.object.plan.id === process.env.YEARLY_PLAN
+                ? 1000
+                : process.env.MONTHLY_PLAN
+                  ? 200
+                  : 5,
           },
-        }
+        },
       );
 
       break;
@@ -111,10 +117,16 @@ exports.stripeWebhook = async (req, res) => {
                 subscription.plan.id === process.env.YEARLY_PLAN
                   ? "Yearly"
                   : subscription.plan.id === process.env.MONTHLY_PLAN
-                  ? "Monthly"
-                  : "Free",
+                    ? "Monthly"
+                    : "Free",
+              messageLimit:
+                subscription?.plan?.id === process.env.YEARLY_PLAN
+                  ? 1000
+                  : subscription?.plan?.id === process.env.MONTHLY_PLAN
+                    ? 200
+                    : 5,
             },
-          }
+          },
         );
       }
 
@@ -130,8 +142,9 @@ exports.stripeWebhook = async (req, res) => {
               plan: "Free",
               isSubscribed: false,
               subscriptionId: "Not Subscribed",
+              messageLimit: 5,
             },
-          }
+          },
         );
       }
       break;
@@ -150,7 +163,7 @@ exports.upgradePlan = async (req, res) => {
   try {
     const user = await User.findOne({ email });
     const fetchSubscription = await stripe.subscriptions.retrieve(
-      user?.subscriptionId
+      user?.subscriptionId,
     );
     const plan = process.env.YEARLY_PLAN;
     const updatedSubscription = await stripe.subscriptions.update(
@@ -162,7 +175,8 @@ exports.upgradePlan = async (req, res) => {
             plan: plan,
           },
         ],
-      }
+        cancel_at_period_end: true,
+      },
     );
 
     return res.status(200).json({
@@ -181,7 +195,7 @@ exports.downgradePlan = async (req, res) => {
   try {
     const user = await User.findOne({ email });
     const fetchSubscription = await stripe.subscriptions.retrieve(
-      user?.subscriptionId
+      user?.subscriptionId,
     );
     const plan = process.env.MONTHLY_PLAN;
     const updatedSubscription = await stripe.subscriptions.update(
@@ -193,7 +207,7 @@ exports.downgradePlan = async (req, res) => {
             plan: plan,
           },
         ],
-      }
+      },
     );
 
     return res.status(200).json({
@@ -208,12 +222,12 @@ exports.downgradePlan = async (req, res) => {
 };
 
 exports.cancelSubscription = async (req, res) => {
-  const { email } = req.user;
+  const { id } = req.user;
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findById(id);
     if (user.subscriptionId) {
       const subscription = await stripe.subscriptions.cancel(
-        user.subscriptionId
+        user.subscriptionId,
       );
 
       return res

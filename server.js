@@ -12,6 +12,7 @@ const { Strategy: GoogleStrategy } = require("passport-google-oauth20");
 const User = require("./models/user");
 const authRouter = require("./routers/auth");
 const aiRouter = require("./routers/ai");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 app.use("/api/v1/stripe", StripeRouter);
 
@@ -20,14 +21,14 @@ app.use(
     origin: "*",
     methods: ["POST", "GET", "PUT", "DELETE", "PATCH"],
     credentials: true,
-  })
+  }),
 );
 app.use(
   session({
     secret: process.env.SESSION_SECRET_KEY,
     resave: false,
     saveUninitialized: true,
-  })
+  }),
 );
 app.use(passport.initialize());
 app.use(passport.session());
@@ -60,12 +61,18 @@ passport.use(
         let user = await User.findOne({
           email: profile.emails[0].value,
         });
+
+        const customer = await stripe.customers.create({
+          name: profile.displayName,
+          email: profile.emails[0].value,
+        });
         if (!user) {
           user = new User({
             googleId: profile.id,
             name: profile.displayName,
             email: profile.emails[0].value,
             isVerified: true,
+            stripeId: customer.id,
           });
 
           await user.save();
@@ -80,8 +87,8 @@ passport.use(
       } catch (error) {
         return done(error, null);
       }
-    }
-  )
+    },
+  ),
 );
 
 app.use(express.json());

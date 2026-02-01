@@ -6,7 +6,7 @@ const fs = require("fs");
 const { userInfo } = require("os");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_AI_SECRET_KEY);
 const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash",
+  model: "gemini-3-flash-preview",
   systemInstruction:
     "You are an Ai Agent named Jarvis ok you have to give appropriate response with example code if needed ok to give user suitable response. You have to remember which topic is on the user is ok, User should not have to repeat the subject again and again.",
 });
@@ -38,78 +38,95 @@ async function GeminiAiTextGeneration(req, res) {
   const { chatId, question } = req.body;
 
   try {
-    const keywords = {
-      weather: ["weather", "temperature", "forecast", "climate"],
-      programming: [
-        "javascript",
-        "python",
-        "coding",
-        "programming",
-        "code",
-        "function",
-      ],
-      travel: ["travel", "vacation", "trip", "flight", "hotel", "destination"],
-      // Add more topics and keywords as needed
-    };
+    const findUser = await User.findById(id);
 
-    let chatData;
-    if (chatId) {
-      // If chatId exists, retrieve the chat data.
-      chatData = await Ai.findOne({ _id: chatId, userId: id });
-      if (!chatData) {
-        throw new Error("Chat not found");
+    if (findUser?.messageLimit > 0) {
+      const keywords = {
+        weather: ["weather", "temperature", "forecast", "climate"],
+        programming: [
+          "javascript",
+          "python",
+          "coding",
+          "programming",
+          "code",
+          "function",
+        ],
+        travel: [
+          "travel",
+          "vacation",
+          "trip",
+          "flight",
+          "hotel",
+          "destination",
+        ],
+        // Add more topics and keywords as needed
+      };
+
+      let chatData;
+      if (chatId) {
+        // If chatId exists, retrieve the chat data.
+        chatData = await Ai.findOne({ _id: chatId, userId: id });
+        if (!chatData) {
+          throw new Error("Chat not found");
+        }
+        if (chatData.messages.length === 0) {
+          chatData.chatName = question;
+          await chatData.save();
+        }
       }
-      if (chatData.messages.length === 0) {
-        chatData.chatName = question;
-        await chatData.save();
+
+      // Determine the topic based on keywords.
+      let detectedTopic = null;
+      for (const topic in keywords) {
+        if (
+          keywords[topic].some((keyword) =>
+            question.toLowerCase().includes(keyword),
+          )
+        ) {
+          detectedTopic = topic;
+          break;
+        }
       }
-    }
+      chatData.topic = detectedTopic || chatData.topic;
+      // Prepare the chat history for the conversation.
+      const chatHistory = chatData.messages.map((msg) => ({
+        role: msg.role,
+        parts: [{ text: msg.text }],
+      }));
 
-    // Determine the topic based on keywords.
-    let detectedTopic = null;
-    for (const topic in keywords) {
-      if (
-        keywords[topic].some((keyword) =>
-          question.toLowerCase().includes(keyword)
-        )
-      ) {
-        detectedTopic = topic;
-        break;
+      const chat = model.startChat({
+        history: chatHistory,
+        generationConfig: {
+          maxOutputTokens: 2000,
+          temperature: 0.1,
+        },
+      });
+
+      // Send the question to the AI and stream the response.
+      let result = await chat.sendMessageStream(question);
+      res.status(200).setHeader("Content-Type", "text/plain");
+      const chunks = [];
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        chunks.push(chunkText);
+        console.log(chunkText);
+        res.write(chunkText);
       }
+      const fullResponse = chunks.join("");
+
+      // Update chat history with the new conversation.
+      chatData.messages.push({ role: "user", text: question });
+      chatData.messages.push({ role: "model", text: fullResponse });
+      await chatData.save();
+
+      findUser.messageLimit = findUser.messageLimit - 1;
+      await findUser.save();
+      res.end();
+    } else {
+      return res
+        .status(400)
+        .json({ message: "You have used your free tier! Upgrade Your Plan." });
     }
-    chatData.topic = detectedTopic || chatData.topic;
-    // Prepare the chat history for the conversation.
-    const chatHistory = chatData.messages.map((msg) => ({
-      role: msg.role,
-      parts: [{ text: msg.text }],
-    }));
-
-    const chat = model.startChat({
-      history: chatHistory,
-      generationConfig: {
-        maxOutputTokens: 2000,
-        temperature: 0.1,
-      },
-    });
-
-    // Send the question to the AI and stream the response.
-    let result = await chat.sendMessageStream(question);
-    res.status(200).setHeader("Content-Type", "text/plain");
-    const chunks = [];
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      chunks.push(chunkText);
-      console.log(chunkText);
-      res.write(chunkText);
-    }
-    const fullResponse = chunks.join("");
-
-    // Update chat history with the new conversation.
-    chatData.messages.push({ role: "user", text: question });
-    chatData.messages.push({ role: "model", text: fullResponse });
-    await chatData.save();
-
-    res.end();
   } catch (error) {
     console.error(error, "ai error");
     if (!res.headersSent) {

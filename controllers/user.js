@@ -30,7 +30,7 @@ exports.registerUser = async (req, res) => {
         email,
         "Welcome to our platform",
 
-        message
+        message,
       );
 
       return res.status(201).json({
@@ -106,8 +106,12 @@ exports.login = async (req, res) => {
     }
   } catch (error) {
     console.log(error);
-
-    return res.status(500).json({ message: "An Error Occured at login" });
+    if (error?.message === "data and hash arguments required") {
+      return res.status(500).json({
+        message:
+          "You've to Setup Your Password using Forgot password as You might have logged in via google auth ",
+      });
+    }
   }
 };
 
@@ -120,7 +124,7 @@ exports.getUser = async (req, res) => {
     }
     return res.status(200).json({
       message: "User fetched Successfully",
-      data: findUser,
+      data: { data: findUser, status: 200 },
     });
   } catch (error) {
     return res
@@ -143,7 +147,7 @@ exports.updateUser = async (req, res) => {
           name,
           phone,
           address,
-        }
+        },
       );
       const findUpdatedUser = await User.findById(id);
       return res
@@ -253,8 +257,8 @@ exports.createCheckoutSession = async (req, res) => {
             plan === "monthly"
               ? process.env.MONTHLY_PLAN
               : plan === "yearly"
-              ? process.env.YEARLY_PLAN
-              : "none",
+                ? process.env.YEARLY_PLAN
+                : "none",
           quantity: 1,
         },
       ],

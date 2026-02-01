@@ -40,6 +40,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: "Not Assigned",
   },
+  messageLimit: {
+    type: Number,
+    default: 5,
+  },
 });
 
 userSchema.pre("save", async function () {
@@ -63,7 +67,7 @@ userSchema.methods.generateToken = async function () {
     process.env.JWT_SECRET_KEY,
     {
       expiresIn: "1h",
-    }
+    },
   );
 };
 
