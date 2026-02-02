@@ -1,0 +1,45 @@
+name: CI/CD Node.js Backend
+
+on:
+  push:
+    branches:
+      - main # Run only on main branch pushes
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20" # Your Node.js version
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Build (if you have build step, otherwise skip)
+      - name: Build
+        run: npm run build || echo "No build step"
+
+      # 5. Deploy via SSH
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd ~/backend # folder where your app lives
+            git pull origin main
+            npm install
+            pm2 stop stripe || true
+            pm2 start server.js --name stripe
+            pm2 save
