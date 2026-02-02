@@ -1,3 +1,4 @@
+require("dotenv").config({ path: "../configs/.env" });
 const express = require("express");
 const passport = require("passport");
 const authRouter = express.Router();
@@ -7,14 +8,14 @@ authRouter.get(
   passport.authenticate("google", {
     scope: ["profile", "email"],
     prompt: "select_account",
-  })
+  }),
 );
 
 // Callback route after Google login
 authRouter.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "http://localhost:3000/login",
+    failureRedirect: `${process.env.CLIENT_URL}/login`,
     // successRedirect: "http://localhost:3000/dashboard",
     session: true,
   }),
@@ -28,8 +29,8 @@ authRouter.get(
     const token = jwt.sign(userPayload, process.env.JWT_SECRET_KEY, {
       expiresIn: "10h",
     });
-    res.redirect(`http://localhost:3000/dashboard?token=${token}`);
-  }
+    res.redirect(`${process.env.CLIENT_URL}/dashboard?token=${token}`);
+  },
 );
 
 // Route to check authentication status
@@ -51,7 +52,7 @@ authRouter.get("/logout", (req, res) => {
     if (err) {
       return res.status(500).json({ error: "Error during logout" });
     }
-    res.redirect("http://localhost:3000/login");
+    res.redirect(`${process.env.CLIENT_URL}/login`);
   });
 });
 
