@@ -4,5 +4,10 @@ package-lock.json
 
 .env
 
+freshersmind.pem
+
+./uploads
 
 db.js
+
+aws.cmd
